@@ -85,8 +85,10 @@ class Forged:
         if token is None:
             token = os.environ.get('FORGED_API_TOKEN')
 
+        logging.info(f'Uploading {name}={value}')
+
         if not token:
-            logging.warning('No forged API token was found. Ignoring block upload')
+            logging.warning('No forged token was found. Skipping value upload')
             return
 
         async with cls(token, url) as client:
