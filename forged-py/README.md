@@ -4,6 +4,16 @@ This package is a client to interface with the forged.dev manufacturing/provisio
 
 When used in the automated Forged provisioner UI, uploading data blocks can be accomplished as
 simply as:
+
+```py
+import forged
+
+def main():
+    # Upload a single block value for the current device.
+    forged.upload_value("my_block_name", 10.0)
+```
+
+Forged also supports async code natively:
 ```py
 from forged import Forged
 
