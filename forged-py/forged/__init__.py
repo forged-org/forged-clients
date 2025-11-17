@@ -1,7 +1,14 @@
 #!/usr/bin/python3
+import asyncio
+
 from forged.client import Forged
 
-# Aliases to the underlying forged object for convenience.
-upload_value = Forged.upload_value
-user_input = Forged.user_input
-blocks = Forged.blocks
+
+def upload_value(*args, **kwargs):
+    """Upload a value to a forged block."""
+    asyncio.run(Forged.upload_value(*args, **kwargs))
+
+
+def blocks(*args, **kwargs):
+    """Get block results from the current forged device."""
+    return asyncio.run(Forged.blocks(*args, **kwargs))
