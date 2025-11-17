@@ -19,19 +19,10 @@ def main():
     forged.upload_value("serial_number", "SimulatedSerialNumber")
 
     # Upload some measurements
-    # TODO: Actually measure voltage and current using a DMM.
     logging.info("Measuring hardware values")
-    time.sleep(3)
     forged.upload_value("vcc", measure_voltage())
-    time.sleep(0.1)
     forged.upload_value("current", measure_current())
-    time.sleep(0.1)
-
-    # TODO: Maybe have the firmware upload these instead?
-    logging.info("Recording firmware information...")
-    time.sleep(3)
     forged.upload_value("hardware_version", "v1.1")
-    time.sleep(0.1)
     forged.upload_value("boot_duration", measure_normal(mean=0.1, sigma=0.05))
 
 if __name__ == '__main__':
