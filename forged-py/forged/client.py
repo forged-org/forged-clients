@@ -16,10 +16,11 @@ import gql
 from gql.transport.aiohttp import AIOHTTPTransport
 
 # The default endpoint to use when connecting to the cloud-based forged.dev service.
-DEFAULT_FORGED_API_ENDPOINT = 'https://api.forged.dev'
+DEFAULT_FORGED_API_ENDPOINT = "https://api.forged.dev"
+
 
 class Forged:
-    """ The main method for creating a connection to forged.dev.
+    """The main method for creating a connection to forged.dev.
 
     Example:
     ```
@@ -32,7 +33,7 @@ class Forged:
     """
 
     def __init__(self, token=None, url=DEFAULT_FORGED_API_ENDPOINT):
-        """ Configure the connection parameters.
+        """Configure the connection parameters.
 
         Args:
             * `token` - The token to use for authentication. If unspecified, the environment
@@ -41,34 +42,38 @@ class Forged:
               service.
         """
         if not token:
-            token = os.environ.get('FORGED_API_TOKEN')
+            token = os.environ.get("FORGED_API_TOKEN")
 
         # If there's a URL injected by the provisioner into the environment, use that URL instead of
         # the default.
-        environment_url = os.environ.get('FORGED_API_URL')
+        environment_url = os.environ.get("FORGED_API_URL")
         if environment_url:
-            logging.info('Overriding provided URL to %s', environment_url)
+            logging.info("Overriding provided URL to %s", environment_url)
             url = environment_url
 
-        assert token is not None, 'Please provide a forged API token'
+        assert token is not None, "Please provide a forged API token"
 
-        transport = AIOHTTPTransport(url=url, headers={'Authorization': f'Bearer {token}'})
+        transport = AIOHTTPTransport(
+            url=url, headers={"Authorization": f"Bearer {token}"}
+        )
         self.client = gql.Client(transport=transport, fetch_schema_from_transport=True)
         self.session = None
-
 
     async def __aenter__(self, *args, **kwargs):
         return await ForgedSession._create(await self.client.__aenter__())
 
-
     async def __aexit__(self, *args, **kwargs):
         await self.client.__aexit__(*args, **kwargs)
 
-
     @classmethod
-    async def upload_value(cls, name: str, value: Union[float, int, str], token=None,
-                           url=DEFAULT_FORGED_API_ENDPOINT):
-        """ Upload a singular value data block to the current run.
+    async def upload_value(
+        cls,
+        name: str,
+        value: Union[float, int, str],
+        token=None,
+        url=DEFAULT_FORGED_API_ENDPOINT,
+    ):
+        """Upload a singular value data block to the current run.
 
         Note:
             If no token is provided and one is not found in the environment, the block upload is
@@ -83,26 +88,56 @@ class Forged:
               service.
         """
         if token is None:
-            token = os.environ.get('FORGED_API_TOKEN')
+            token = os.environ.get("FORGED_API_TOKEN")
 
-        logging.info(f'Uploading {name}={value}')
+        logging.info(f"Uploading {name}={value}")
 
         if not token:
-            logging.warning('No forged token was found. Skipping value upload')
+            logging.warning("No forged token was found. Skipping value upload")
             return
 
         async with cls(token, url) as client:
             await client.upload_value(name, value)
 
     @classmethod
+    async def upload_block(
+        cls, name: str, data: Dict, token=None, url=DEFAULT_FORGED_API_ENDPOINT
+    ):
+        """Upload a block to the forged device.
+
+        Args:
+            * `name` - The name of the block being uploaded.
+            * `data` - The data to upload to the forged API, properly formatted according to the
+            schema.
+            * `token` - The token to use for authentication. If unspecified, the environment
+              variable `FORGED_API_TOKEN` will be used instead.
+            * `url` - The URL to connect to. The default value connects to forged.dev's cloud
+              service.
+
+        Note:
+            If no token is provided and one is not found in the environment, the block upload is
+            silently ignored.
+        """
+        if token is None:
+            token = os.environ.get("FORGED_API_TOKEN")
+
+        logging.info(f"Uploading {name}={data}")
+
+        if not token:
+            logging.warning("No forged token was found. Skipping value upload")
+            return
+        async with cls(token, url) as client:
+            await client.upload_block(name, data)
+
+    @classmethod
     async def blocks(cls, token=None, url=DEFAULT_FORGED_API_ENDPOINT):
-        """ Get all of the blocks for the current device. """
+        """Get all of the blocks for the current device."""
         async with cls(token, url) as client:
             return await client.blocks()
 
     @classmethod
     def user_input(cls, message: str, request_response=True) -> str:
-        """ Request user input during a run execution.
+        """Request user input during a run execution.
 
         Args:
             * `message` - The prompt message to display to the user.
@@ -110,48 +145,49 @@ class Forged:
         Note: If there's no active forged run, this will use the built in `input()` function
         instead.
         """
-        tcp_endpoint = os.environ.get('FORGED_INPUT_SOCKET')
+        tcp_endpoint = os.environ.get("FORGED_INPUT_SOCKET")
 
         if tcp_endpoint:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            (host, port) = tcp_endpoint.split(':')
+            (host, port) = tcp_endpoint.split(":")
             sock.connect((host, int(port)))
 
-            request = { 'message': message, 'response_requested': request_response}
+            request = {"message": message, "response_requested": request_response}
             payload = json.dumps(request)
-            sock.sendall(payload.encode('ascii'))
+            sock.sendall(payload.encode("ascii"))
 
-            response = json.loads(sock.recv(256).decode('ascii'))
-            return response['message']
+            response = json.loads(sock.recv(256).decode("ascii"))
+            return response["message"]
         else:
             return input(message)
 
 
 class ForgedSession:
-    """ An asynchronous connection with the forged.dev run. """
+    """An asynchronous connection with the forged.dev run."""
 
     @classmethod
     async def _create(cls, session):
-        """ Create the session from a graphQL connection. """
-        provisioner_query = gql.gql("""
+        """Create the session from a graphQL connection."""
+        provisioner_query = gql.gql(
+            """
         query getRunData {
             currentProvisioner {
                 projectId
             }
-        }""")
+        }"""
+        )
         provisioner = await session.execute(provisioner_query)
-        project_id = provisioner['currentProvisioner']['projectId']
+        project_id = provisioner["currentProvisioner"]["projectId"]
         return cls(session, project_id)
 
-
     def __init__(self, session, project_id: str):
-        """ Constructor """
+        """Constructor"""
         self.session = session
         self.project_id = project_id
 
-
     async def blocks(self):
-        blocks_query = gql.gql("""
+        blocks_query = gql.gql(
+            """
         query getBlocks {
             currentProvisioner {
                 currentRun {
@@ -164,28 +200,27 @@ class ForgedSession:
                 }
             }
         }
-        """)
+        """
+        )
 
         query = await self.session.execute(blocks_query)
 
         blocks = {}
-        for block in query['currentProvisioner']['currentRun']['blocks']:
-            data = block['dataDecoded']
-            blocks[block['schema']['name']] = block['dataDecoded'][list(data.keys())[0]]
+        for block in query["currentProvisioner"]["currentRun"]["blocks"]:
+            data = block["dataDecoded"]
+            blocks[block["schema"]["name"]] = block["dataDecoded"][list(data.keys())[0]]
 
         return blocks
 
-
     async def upload_value(self, name: str, value: Union[float, int, str]):
-        """ Upload a block that contains a single value. """
+        """Upload a block that contains a single value."""
         try:
-            upload = await self.upload_block(name, {'value': value})
+            upload = await self.upload_block(name, {"value": value})
         except gql.transport.exceptions.TransportQueryError as error:
-            logging.warning('Failed to upload %s: %s', name, error)
-
+            logging.warning("Failed to upload %s: %s", name, error)
 
     async def upload_block(self, name: str, data: Dict):
-        """ Upload a block of data to the current run.
+        """Upload a block of data to the current run.
 
         Note:
             This uploads raw data to the block in an unformatted manner. The user is responsible for
@@ -196,17 +231,17 @@ class ForgedSession:
             * `name` - The name of the block being uploaded.
             * `data` - The data associated with the block.
         """
-        block_mutation = gql.gql("""
+        block_mutation = gql.gql(
+            """
         mutation CreateBlock($schemaName: String!, $data: JSON!) {
             blockCreate(schemaName: $schemaName, data: $data) {
                 id
             }
-        }""")
+        }"""
+        )
 
-        result = await self.session.execute(block_mutation, variable_values={
-            'schemaName': name,
-            'data': data
-        })
+        result = await self.session.execute(
+            block_mutation, variable_values={"schemaName": name, "data": data}
+        )
 
-        return result['blockCreate']['id']
-
+        return result["blockCreate"]["id"]
