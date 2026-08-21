@@ -157,6 +157,7 @@ class Forged:
             sock.sendall(payload.encode("ascii"))
 
             response = json.loads(sock.recv(256).decode("ascii"))
+            sock.close()
             return response["message"]
         else:
             return input(message)
