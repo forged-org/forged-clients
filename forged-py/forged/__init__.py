@@ -9,6 +9,11 @@ def upload_value(*args, **kwargs):
     asyncio.run(Forged.upload_value(*args, **kwargs))
 
 
+def upload_attachment(*args, **kwargs):
+    """Attach a file to the current forged run."""
+    asyncio.run(Forged.upload_attachment(*args, **kwargs))
+
+
 def blocks(*args, **kwargs):
     """Get block results from the current forged device."""
     return asyncio.run(Forged.blocks(*args, **kwargs))

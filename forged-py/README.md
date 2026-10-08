@@ -11,6 +11,9 @@ import forged
 def main():
     # Upload a single block value for the current device.
     forged.upload_value("my_block_name", 10.0)
+
+    # Attach a file, such as a plot, to the current run.
+    forged.upload_attachment("results/plot.png")
 ```
 
 Forged also supports async code natively:
