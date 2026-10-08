@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## Added
+* Added `forged.upload_attachment` (and `Forged.upload_attachment`) to attach files, such as plots,
+  to the current run.
+
+## Changed
+* `Forged.upload_value` and `Forged.upload_block` now log and ignore errors communicating with
+  forged.dev (server errors, rejected requests, connection failures and timeouts) instead of
+  raising, so a failed upload no longer aborts the running test.
+
 ## Fixed
 * Fixed an issue where the user input socket was left alive after user input requests were handled.
 

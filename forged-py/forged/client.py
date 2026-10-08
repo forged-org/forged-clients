@@ -6,17 +6,32 @@ Author: Forged.dev
 
 Description: Utilities for uploading data to forged.dev test runs from custom tests.
 """
+import asyncio
+import io
 import logging
 import os
 import socket
 from typing import Union, Dict
 import json
 
+import aiohttp
 import gql
 from gql.transport.aiohttp import AIOHTTPTransport
+from gql.transport.exceptions import TransportError, TransportQueryError
 
 # The default endpoint to use when connecting to the cloud-based forged.dev service.
 DEFAULT_FORGED_API_ENDPOINT = "https://api.forged.dev"
+
+# Errors from talking to forged.dev that are logged and ignored by the upload helpers, so that a
+# failed upload does not abort the test that is running.
+UPLOAD_ERRORS = (TransportError, aiohttp.ClientError, asyncio.TimeoutError)
+
+
+def _describe_error(error: Exception) -> str:
+    """Describe an upload error for logging, keeping the line breaks in server error messages."""
+    if isinstance(error, TransportQueryError) and error.errors:
+        return "\n".join(str(entry.get("message", entry)) for entry in error.errors)
+    return str(error)
 
 
 class Forged:
@@ -77,7 +92,7 @@ class Forged:
 
         Note:
             If no token is provided and one is not found in the environment, the block upload is
-            silently ignored.
+            silently ignored. Errors communicating with forged.dev are logged and ignored.
 
         Args:
             * `name` - The name of the block being uploaded.
@@ -96,8 +111,11 @@ class Forged:
             logging.warning("No forged token was found. Skipping value upload")
             return
 
-        async with cls(token, url) as client:
-            await client.upload_value(name, value)
+        try:
+            async with cls(token, url) as client:
+                await client.upload_value(name, value)
+        except UPLOAD_ERRORS as error:
+            logging.error("Failed to upload %s: %s", name, _describe_error(error))
 
     @classmethod
     async def upload_block(
@@ -116,7 +134,7 @@ class Forged:
 
         Note:
             If no token is provided and one is not found in the environment, the block upload is
-            silently ignored.
+            silently ignored. Errors communicating with forged.dev are logged and ignored.
         """
         if token is None:
             token = os.environ.get("FORGED_API_TOKEN")
@@ -126,8 +144,42 @@ class Forged:
         if not token:
             logging.warning("No forged token was found. Skipping value upload")
             return
-        async with cls(token, url) as client:
-            await client.upload_block(name, data)
+        try:
+            async with cls(token, url) as client:
+                await client.upload_block(name, data)
+        except UPLOAD_ERRORS as error:
+            logging.error("Failed to upload %s: %s", name, _describe_error(error))
+
+    @classmethod
+    async def upload_attachment(
+        cls, file_path: str, token=None, url=DEFAULT_FORGED_API_ENDPOINT
+    ):
+        """Attach a file, such as a plot or a log, to the current run.
+
+        Args:
+            * `file_path` - The path of the file to attach. The file is attached under its base name.
+            * `token` - The token to use for authentication. If unspecified, the environment
+              variable `FORGED_API_TOKEN` will be used instead.
+            * `url` - The URL to connect to. The default value connects to forged.dev's cloud
+              service.
+
+        Note:
+            If no token is provided and one is not found in the environment, the attachment upload
+            is silently ignored. Errors communicating with forged.dev are logged and ignored.
+        """
+        if token is None:
+            token = os.environ.get("FORGED_API_TOKEN")
+
+        logging.info(f"Attaching {file_path}")
+
+        if not token:
+            logging.warning("No forged token was found. Skipping attachment upload")
+            return
+        try:
+            async with cls(token, url) as client:
+                await client.upload_attachment(file_path)
+        except UPLOAD_ERRORS as error:
+            logging.error("Failed to attach %s: %s", file_path, _describe_error(error))
 
     @classmethod
     async def blocks(cls, token=None, url=DEFAULT_FORGED_API_ENDPOINT):
@@ -217,8 +269,8 @@ class ForgedSession:
         """Upload a block that contains a single value."""
         try:
             upload = await self.upload_block(name, {"value": value})
-        except gql.transport.exceptions.TransportQueryError as error:
-            logging.warning("Failed to upload %s: %s", name, error)
+        except TransportQueryError as error:
+            logging.warning("Failed to upload %s: %s", name, _describe_error(error))
 
     async def upload_block(self, name: str, data: Dict):
         """Upload a block of data to the current run.
@@ -246,3 +298,35 @@ class ForgedSession:
         )
 
         return result["blockCreate"]["id"]
+
+    async def upload_attachment(self, file_path: str):
+        """Attach a file to the current run.
+
+        Args:
+            * `file_path` - The path of the file to attach. The file is attached under its base name
+              rather than its full local path.
+
+        Returns:
+            The ID of the created attachment.
+        """
+        attachment_mutation = gql.gql(
+            """
+        mutation CreateAttachment($data: Upload!) {
+            attachmentCreate(data: $data) {
+                id
+            }
+        }"""
+        )
+
+        with open(file_path, "rb") as file:
+            upload = io.BytesIO(file.read())
+
+        # The multipart upload names the file after the stream's `name`, which would otherwise be
+        # the full local path.
+        upload.name = os.path.basename(file_path)
+
+        result = await self.session.execute(
+            attachment_mutation, variable_values={"data": upload}, upload_files=True
+        )
+
+        return result["attachmentCreate"]["id"]
