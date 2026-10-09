@@ -20,13 +20,15 @@ cargo publish
 python -m pip install build twine
 ```
 
+Clean and build the packages
 ```
 cd forged-py
+rm -rf dist
 python -m build
-twine check dist/*
+python -m twine check dist/*
 
 # Upload to TestPyPi to check
-twine upload -r testpypi dist/*
+python -m twine upload -r testpypi dist/*
 
 # Upload to rea PyPi to release
 twine upload -r pypi dist/*
