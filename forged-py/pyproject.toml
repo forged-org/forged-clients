@@ -8,6 +8,7 @@ description = "Forged.dev Client library"
 version = "0.3.0"
 readme = "README.md"
 license = "MIT"
+license-files = ["LICENSE-MIT"]
 authors = [
     { name = "Ryan Summers", email = "ryan.summers@vertigo-designs.com" },
     { name = "Noah Hüsser", email = "noah@huesser.dev" },
