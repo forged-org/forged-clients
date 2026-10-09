@@ -7,6 +7,7 @@ name = "forged-client"
 description = "Forged.dev Client library"
 version = "0.3.0"
 readme = "README.md"
+license = "MIT"
 authors = [
     { name = "Ryan Summers", email = "ryan.summers@vertigo-designs.com" },
     { name = "Noah Hüsser", email = "noah@huesser.dev" },
@@ -15,7 +16,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Manufacturing",
-    "License :: OSI Approved :: MIT License",
     "Topic :: Scientific/Engineering",
     "Topic :: System :: Hardware",
 ]
