@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+## Changed
+* The client no longer fetches the GraphQL schema on every connection, saving about a second per
+  upload.
+* gql's per-request transport logging is now quieted to `WARNING`, so request and response bodies
+  no longer flood test output and the run's command log.
+
 ## 0.3.0 - 2026-10-09
 
 ## Added
