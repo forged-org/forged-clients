@@ -26,6 +26,10 @@ DEFAULT_FORGED_API_ENDPOINT = "https://api.forged.dev"
 # failed upload does not abort the test that is running.
 UPLOAD_ERRORS = (TransportError, aiohttp.ClientError, asyncio.TimeoutError)
 
+# gql logs every request and response body at INFO, which floods test output (and the run's
+# command log). Re-enable it with `logging.getLogger("gql.transport.aiohttp").setLevel(...)`.
+logging.getLogger("gql.transport.aiohttp").setLevel(logging.WARNING)
+
 
 def _describe_error(error: Exception) -> str:
     """Describe an upload error for logging, keeping the line breaks in server error messages."""
@@ -71,7 +75,8 @@ class Forged:
         transport = AIOHTTPTransport(
             url=url, headers={"Authorization": f"Bearer {token}"}
         )
-        self.client = gql.Client(transport=transport, fetch_schema_from_transport=True)
+        # The server validates every query, so skip fetching the (large) schema on each connection.
+        self.client = gql.Client(transport=transport, fetch_schema_from_transport=False)
         self.session = None
 
     async def __aenter__(self, *args, **kwargs):
