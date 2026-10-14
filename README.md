@@ -31,5 +31,5 @@ python -m twine check dist/*
 python -m twine upload -r testpypi dist/*
 
 # Upload to rea PyPi to release
-twine upload -r pypi dist/*
+python -m twine upload -r pypi dist/*
 ```
